@@ -19,8 +19,7 @@ if [[ -n "${JDK_BASE_URL}" ]]; then
   warning_inline "Support for the JDK_BASE_URL environment variable is deprecated and will be removed October 2021!"
 else
   JVM_BUILDPACK_ASSETS_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL:-"https://java-binaries.scalingo.com"}"
-  DEFAULT_JDK_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL%/}/jdk/${STACK:-"scalingo-18"}"
-  JDK_BASE_URL=${JDK_BASE_URL:-$DEFAULT_JDK_BASE_URL}
+  JDK_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL%/}/jdk/${STACK:-"scalingo-18"}"
 fi
 
 get_jdk_version() {

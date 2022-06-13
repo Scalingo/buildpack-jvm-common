@@ -15,7 +15,7 @@ build an application. It is used by the
 
 This is how the buildpack is used from another buildpack:
 
-```shell
+```bash
 JVM_BUILDPACK_URL="https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm-common.tar.xz"
 mkdir -p /tmp/jvm-common
 curl --silent --location $JVM_BUILDPACK_URL | tar xJm -C /tmp/jvm-common --strip-components=1
