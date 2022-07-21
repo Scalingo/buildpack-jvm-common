@@ -2,6 +2,56 @@
 
 ## Main
 
+## v135
+
+* Only use `--retry-connrefused` on Ubuntu based stacks. ([#243](https://github.com/heroku/heroku-buildpack-jvm-common/pull/243))
+
+## v134
+
+* Adjust curl retry and connection timeout handling. ([#241](https://github.com/heroku/heroku-buildpack-jvm-common/pull/241))
+* Switch to the recommended regional S3 domain instead of the global one. ([#240](https://github.com/heroku/heroku-buildpack-jvm-common/pull/240))
+
+## v133
+
+* Allow OpenJDK distribution prefixes to be used in conjunction with major versions. Previously, a specific patch version was required when using a distribution prefix. ([#239](https://github.com/heroku/heroku-buildpack-jvm-common/pull/239)) 
+
+## v132
+
+* Refactor OpenJDK version resolution code. ([#237](https://github.com/heroku/heroku-buildpack-jvm-common/pull/237))
+* Drop support for OpenJDK `9` and OpenJDK `12`, both versions are not available on any supported stack. ([#237](https://github.com/heroku/heroku-buildpack-jvm-common/pull/237))
+* Add support for `heroku-22` stack. ([#236](https://github.com/heroku/heroku-buildpack-jvm-common/pull/236))
+* Change default OpenJDK distribution to [Azul Zulu Builds of OpenJDK](https://www.azul.com/downloads/?package=jdk#download-openjdk) on stacks >= `heroku-22`. ([#236](https://github.com/heroku/heroku-buildpack-jvm-common/pull/236))
+
+## v131
+
+* Remove Cloud Native Buildpack support. Development of Heroku JVM Cloud Native Buildpacks now takes place in a dedicated repository: https://github.com/heroku/buildpacks-jvm
+
+## v130
+
+* Upgrade default JDK for Java 18 to 18.0.1
+
+## v129
+
+* Upgrade default JDKs to 17.0.3, 15.0.7, 13.0.11, 11.0.15, 8u332 and 7u342
+
+## v128
+
+* Add support for Java 18
+
+## v127
+
+* Upgrade default JDK for Java 11 to 11.0.14.1
+
+## v126
+
+* Upgrade default JDKs to 17.0.2, 15.0.6, 13.0.10, 11.0.14, 8u322 and 7u332
+
+## v125
+* Upgrade default JDK for Java 7 to 7u322
+
+## v124
+* Upgrade default JDK for Java 17 to 17.0.1
+
 ## v123
 * Upgrade default JDKs to 15.0.5, 13.0.9, 11.0.13, and 8u312 
 
