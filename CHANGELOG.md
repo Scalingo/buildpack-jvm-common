@@ -2,6 +2,23 @@
 
 ## Main
 
+## v139
+
+* Upgrade default JDKs to 19.0.1, 17.0.5, 15.0.9, 13.0.13, 11.0.17 and 8u352. ([#250](https://github.com/heroku/heroku-buildpack-jvm-common/pull/250))
+
+## v138
+
+* Upgrade default Java 18 JDK to `18.0.2.1`. ([#247](https://github.com/heroku/heroku-buildpack-jvm-common/pull/247))
+* Add support for Java 19. ([#247](https://github.com/heroku/heroku-buildpack-jvm-common/pull/247))
+
+## v137
+
+* Upgrade default JDKs to `8u345`, `11.0.16.1`, `17.0.4.1`. ([#245](https://github.com/heroku/heroku-buildpack-jvm-common/pull/245))
+
+## v136
+
+* Upgrade default JDKs to 18.0.2, 17.0.4, 15.0.8, 13.0.12, 11.0.16, 8u342, 7u352
+
 ## v135
 
 * Only use `--retry-connrefused` on Ubuntu based stacks. ([#243](https://github.com/heroku/heroku-buildpack-jvm-common/pull/243))
@@ -13,7 +30,7 @@
 
 ## v133
 
-* Allow OpenJDK distribution prefixes to be used in conjunction with major versions. Previously, a specific patch version was required when using a distribution prefix. ([#239](https://github.com/heroku/heroku-buildpack-jvm-common/pull/239)) 
+* Allow OpenJDK distribution prefixes to be used in conjunction with major versions. Previously, a specific patch version was required when using a distribution prefix. ([#239](https://github.com/heroku/heroku-buildpack-jvm-common/pull/239))
 
 ## v132
 
@@ -53,7 +70,7 @@
 * Upgrade default JDK for Java 17 to 17.0.1
 
 ## v123
-* Upgrade default JDKs to 15.0.5, 13.0.9, 11.0.13, and 8u312 
+* Upgrade default JDKs to 15.0.5, 13.0.9, 11.0.13, and 8u312
 
 ## v122
 
