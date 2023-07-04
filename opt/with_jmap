@@ -5,4 +5,4 @@ export PATH=$HOME/.scalingo/with_jmap/bin:$PATH
 export SCALINGO_JAVA_HOME=${JAVA_HOME}
 unset JAVA_HOME
 
-eval "$@"
+"$@"

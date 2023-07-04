@@ -1,17 +1,21 @@
 #!/usr/bin/env bash
 
 DEFAULT_JDK_VERSION="1.8"
+
+DEFAULT_JDK_1_8_VERSION="1.8.0_372"
+DEFAULT_JDK_11_VERSION="11.0.19"
+DEFAULT_JDK_13_VERSION="13.0.14"
+DEFAULT_JDK_15_VERSION="15.0.10"
+DEFAULT_JDK_17_VERSION="17.0.7"
+DEFAULT_JDK_20_VERSION="20.0.1"
+
+# EOL Versions
 DEFAULT_JDK_1_7_VERSION="1.7.0_352"
-DEFAULT_JDK_1_8_VERSION="1.8.0_352"
 DEFAULT_JDK_10_VERSION="10.0.2"
-DEFAULT_JDK_11_VERSION="11.0.17"
-DEFAULT_JDK_13_VERSION="13.0.13"
 DEFAULT_JDK_14_VERSION="14.0.2"
-DEFAULT_JDK_15_VERSION="15.0.9"
 DEFAULT_JDK_16_VERSION="16.0.2"
-DEFAULT_JDK_17_VERSION="17.0.5"
 DEFAULT_JDK_18_VERSION="18.0.2.1"
-DEFAULT_JDK_19_VERSION="19.0.1"
+DEFAULT_JDK_19_VERSION="19.0.2"
 
 if [[ -n "${JDK_BASE_URL}" ]]; then
   # Support for setting JDK_BASE_URL had the issue that it has to contain the stack name. This makes it hard to
@@ -65,6 +69,7 @@ get_full_jdk_version() {
   "17") echo "${DEFAULT_JDK_17_VERSION}" ;;
   "18") echo "${DEFAULT_JDK_18_VERSION}" ;;
   "19") echo "${DEFAULT_JDK_19_VERSION}" ;;
+  "20") echo "${DEFAULT_JDK_20_VERSION}" ;;
   *) echo "${version}" ;;
   esac
 }
@@ -163,7 +168,7 @@ install_metrics_agent() {
 
   mkdir -p "${installDir}"
   curl_with_defaults --retry 3 -s -o "${agentJar}" \
-    -L "${HEROKU_METRICS_JAR_URL:-"https://repo1.maven.org/maven2/com/heroku/agent/heroku-java-metrics-agent/3.14/heroku-java-metrics-agent-3.14.jar"}"
+    -L "${HEROKU_METRICS_JAR_URL:-"https://repo1.maven.org/maven2/com/heroku/agent/heroku-java-metrics-agent/4.0.1/heroku-java-metrics-agent-4.0.1.jar"}"
   if [ -f "${agentJar}" ]; then
     mkdir -p "${profileDir}"
     cp "${bpDir}/opt/heroku-jvm-metrics.sh" "${profileDir}"
