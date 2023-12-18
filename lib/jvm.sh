@@ -2,29 +2,30 @@
 
 DEFAULT_JDK_VERSION="1.8"
 
-DEFAULT_JDK_1_8_VERSION="1.8.0_372"
-DEFAULT_JDK_11_VERSION="11.0.19"
-DEFAULT_JDK_13_VERSION="13.0.14"
-DEFAULT_JDK_15_VERSION="15.0.10"
-DEFAULT_JDK_17_VERSION="17.0.7"
-DEFAULT_JDK_20_VERSION="20.0.1"
+DEFAULT_JDK_1_8_VERSION="1.8.0_392"
+DEFAULT_JDK_11_VERSION="11.0.21"
+DEFAULT_JDK_17_VERSION="17.0.9"
+DEFAULT_JDK_21_VERSION="21.0.1"
 
 # EOL Versions
 DEFAULT_JDK_1_7_VERSION="1.7.0_352"
 DEFAULT_JDK_10_VERSION="10.0.2"
+DEFAULT_JDK_13_VERSION="13.0.14"
 DEFAULT_JDK_14_VERSION="14.0.2"
+DEFAULT_JDK_15_VERSION="15.0.10"
 DEFAULT_JDK_16_VERSION="16.0.2"
 DEFAULT_JDK_18_VERSION="18.0.2.1"
 DEFAULT_JDK_19_VERSION="19.0.2"
+DEFAULT_JDK_20_VERSION="20.0.2"
 
-if [[ -n "${JDK_BASE_URL}" ]]; then
+if [[ -n "${JDK_BASE_URL:-}" ]]; then
   # Support for setting JDK_BASE_URL had the issue that it has to contain the stack name. This makes it hard to
   # override the bucket for testing with staging binaries by using the existing JVM buildpack integration tests that
   # cover all stacks. We will remove support for it in October 2021.
   warning_inline "Support for the JDK_BASE_URL environment variable is deprecated and will be removed October 2021!"
 else
-  JVM_BUILDPACK_ASSETS_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL:-"https://java-binaries.scalingo.com"}"
-  JDK_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL%/}/jdk/${STACK:-"scalingo-18"}"
+  JVM_BUILDPACK_ASSETS_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL:-"https://lang-jvm.s3.us-east-1.amazonaws.com"}"
+  JDK_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL%/}/jdk/${STACK:-"scalingo-20"}"
 fi
 
 get_jdk_version() {
@@ -70,6 +71,7 @@ get_full_jdk_version() {
   "18") echo "${DEFAULT_JDK_18_VERSION}" ;;
   "19") echo "${DEFAULT_JDK_19_VERSION}" ;;
   "20") echo "${DEFAULT_JDK_20_VERSION}" ;;
+  "21") echo "${DEFAULT_JDK_21_VERSION}" ;;
   *) echo "${version}" ;;
   esac
 }
@@ -79,14 +81,14 @@ get_jdk_url() {
   jdkVersion="$(get_full_jdk_version "${1:-${DEFAULT_JDK_VERSION}}")"
 
   case ${jdkVersion} in
-  heroku-*) jdkUrl="${JDK_BASE_URL}/${jdkVersion//heroku-/openjdk}.tar.gz" ;;
-  openjdk-*) jdkUrl="${JDK_BASE_URL}/${jdkVersion//openjdk-/openjdk}.tar.gz" ;;
-  zulu-*) jdkUrl="${JDK_BASE_URL}/${jdkVersion}.tar.gz" ;;
+  heroku-*) jdkUrl="${JDK_BASE_URL:-}/${jdkVersion//heroku-/openjdk}.tar.gz" ;;
+  openjdk-*) jdkUrl="${JDK_BASE_URL:-}/${jdkVersion//openjdk-/openjdk}.tar.gz" ;;
+  zulu-*) jdkUrl="${JDK_BASE_URL:-}/${jdkVersion}.tar.gz" ;;
   *)
-    if [ "${STACK}" == "heroku-18" ] || [ "${STACK}" == "heroku-20" ] || [ "${STACK}" == "scalingo-18" ] || [ "${STACK}" == "scalingo-20" ]; then
-      jdkUrl="${JDK_BASE_URL}/openjdk${jdkVersion}.tar.gz"
+    if [ "${STACK:-}" == "scalingo-18" ] || [ "${STACK:-}" == "scalingo-20" ]; then
+      jdkUrl="${JDK_BASE_URL:-}/openjdk${jdkVersion}.tar.gz"
     else
-      jdkUrl="${JDK_BASE_URL}/zulu-${jdkVersion}.tar.gz"
+      jdkUrl="${JDK_BASE_URL:-}/zulu-${jdkVersion}.tar.gz"
     fi
     ;;
   esac
