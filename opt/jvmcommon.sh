@@ -2,32 +2,34 @@
 
 calculate_java_memory_opts() {
   local opts=${1:-""}
+  local memory_limit_file='/sys/fs/cgroup/memory/memory.limit_in_bytes'
 
-  container_size=$(echo $CONTAINER_SIZE)
-  case $container_size in
-  S)
+  if [[ -f "${memory_limit_file}" ]]; then
     # XX:XICompilerCount=2 is the minimum value
-    echo "$opts -Xmx160m -Xss512k -XX:CICompilerCount=2"
-    ;;
-  L)
-    echo "$opts -Xmx671m -XX:CICompilerCount=2"
-    ;;
-  XL)
-    echo "$opts -Xmx1536m -XX:CICompilerCount=2"
-    ;;
-  2XL)
-    echo "$opts -Xmx3g -XX:CICompilerCount=3"
-    ;;
-  3XL)
-    echo "$opts -Xmx6g -XX:CICompilerCount=3"
-    ;;
-  4XL)
-    echo "$opts -Xmx12g -XX:CICompilerCount=4"
-    ;;
-  *) # M Container and default if buildpack is used elsewhere
-    echo "$opts -Xmx300m -Xss512k -XX:CICompilerCount=2"
-    ;;
-  esac
+
+    case $( cat "${memory_limit_file}" ) in
+      268435456)   # 256M   - S
+        echo "$opts -Xmx160m -Xss512k --XXCICompilerCount=2"
+        return 0
+        ;;
+      536870912)   # 512M   - M
+        echo "$opts -Xmx300m -Xss512k -XX:CICompilerCount=2"
+        return 0
+        ;;
+      1073741824)  # 1024M  - L
+        echo "$opts -Xmx671m -XX:CICompilerCount=2"
+        return 0
+        ;;
+      2147483648)  # 2048M  - XL
+        echo "$opts -Xmx1536m -XX:CICompilerCount=2"
+        return 0
+        ;;
+     esac
+  fi
+
+  # In all other cases, rely on JVM ergonomics for other container sizes, but
+  # increase the maximum RAM percentage from 25% (Java's default) to 80%.
+  echo "$opts -XX:MaxRAMPercentage=80.0"
 }
 
 if [[ -d $HOME/.jdk ]]; then
