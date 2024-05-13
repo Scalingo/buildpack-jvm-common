@@ -5,11 +5,11 @@ calculate_java_memory_opts() {
   local memory_limit_file='/sys/fs/cgroup/memory/memory.limit_in_bytes'
 
   if [[ -f "${memory_limit_file}" ]]; then
-    # XX:XICompilerCount=2 is the minimum value
+    # XX:CICompilerCount=2 is the minimum value
 
     case $( cat "${memory_limit_file}" ) in
       268435456)   # 256M   - S
-        echo "$opts -Xmx160m -Xss512k --XXCICompilerCount=2"
+        echo "$opts -Xmx160m -Xss512k --XX:CICompilerCount=2"
         return 0
         ;;
       536870912)   # 512M   - M
