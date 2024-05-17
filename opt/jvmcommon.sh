@@ -9,7 +9,7 @@ calculate_java_memory_opts() {
 
     case $( cat "${memory_limit_file}" ) in
       268435456)   # 256M   - S
-        echo "$opts -Xmx160m -Xss512k --XX:CICompilerCount=2"
+        echo "$opts -Xmx160m -Xss512k -XX:CICompilerCount=2"
         return 0
         ;;
       536870912)   # 512M   - M
