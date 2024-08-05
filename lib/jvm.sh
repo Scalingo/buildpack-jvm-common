@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
 
-DEFAULT_JDK_VERSION="1.8"
+STACK="${STACK:-"scalingo-20"}"
 
-DEFAULT_JDK_1_8_VERSION="1.8.0_412"
-DEFAULT_JDK_11_VERSION="11.0.23"
-DEFAULT_JDK_17_VERSION="17.0.11"
-DEFAULT_JDK_21_VERSION="21.0.3"
-DEFAULT_JDK_22_VERSION="22.0.1"
+if [ "${STACK}" == "scalingo-24" ]; then
+  # This should always be the latest OpenJDK LTS major version
+  # Next LTS will be OpenJDK 25 with a planned release date of 2025-09-16
+  DEFAULT_JDK_VERSION="21"
+else
+  DEFAULT_JDK_VERSION="1.8"
+fi
+
+DEFAULT_JDK_1_8_VERSION="1.8.0_422"
+DEFAULT_JDK_11_VERSION="11.0.24"
+DEFAULT_JDK_17_VERSION="17.0.12"
+DEFAULT_JDK_21_VERSION="21.0.4"
+DEFAULT_JDK_22_VERSION="22.0.2"
 
 # EOL Versions
 DEFAULT_JDK_1_7_VERSION="1.7.0_352"
@@ -26,20 +34,17 @@ if [[ -n "${JDK_BASE_URL:-}" ]]; then
   warning_inline "Support for the JDK_BASE_URL environment variable is deprecated and will be removed October 2021!"
 else
   JVM_BUILDPACK_ASSETS_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL:-"https://java-binaries.scalingo.com"}"
-  JDK_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL%/}/jdk/${STACK:-"scalingo-20"}"
+  JDK_BASE_URL="${JVM_BUILDPACK_ASSETS_BASE_URL%/}/jdk/${STACK}"
 fi
 
 get_jdk_version() {
   local appDir="${1:?}"
-  if [ -f "${appDir}/system.properties" ]; then
-    detectedVersion="$(_get_system_property "${appDir}/system.properties" "java.runtime.version")"
-    if [ -n "$detectedVersion" ]; then
-      echo "$detectedVersion"
-    else
-      echo "$DEFAULT_JDK_VERSION"
-    fi
+
+  configuredVersion="$(_get_system_property "${appDir}/system.properties" "java.runtime.version")"
+  if [ -n "${configuredVersion}" ]; then
+    echo "${configuredVersion}"
   else
-    echo "$DEFAULT_JDK_VERSION"
+    echo "${DEFAULT_JDK_VERSION}"
   fi
 }
 
@@ -200,7 +205,10 @@ _get_system_property() {
   local escaped_key
   escaped_key="${key//\./\\.}"
 
-  [ -f "$file" ] &&
-    grep -E "^${escaped_key}[[:space:]=]+" "$file" |
-    sed -E -e "s/$escaped_key([\ \t]*=[\ \t]*|[\ \t]+)([_A-Za-z0-9\.-]*).*/\2/g"
+  if [ -f "${file}" ]; then
+    grep -E "^${escaped_key}[[:space:]=]+" "${file}" |
+      sed -E -e "s/${escaped_key}([\ \t]*=[\ \t]*|[\ \t]+)([_A-Za-z0-9\.-]*).*/\2/g"
+  else
+    echo ""
+  fi
 }

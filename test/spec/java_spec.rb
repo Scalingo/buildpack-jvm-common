@@ -1,8 +1,7 @@
 require_relative 'spec_helper'
 
 describe "Java" do
-
-  ["1.8", "8", "11", "17", "22", "11.0.15", "openjdk-11.0.15", "zulu-11.0.15", "heroku-17", "zulu-17", "heroku-21", "zulu-21"].each do |jdk_version|
+  ["1.8", "8", "11", "17", "22", "11.0.23", "openjdk-11.0.23", "zulu-11.0.23", "heroku-17", "zulu-17", "heroku-21", "zulu-21"].each do |jdk_version|
     context "a simple java app on jdk-#{jdk_version}" do
       it "should deploy" do
         new_default_hatchet_runner("java-servlets-sample").tap do |app|
@@ -19,6 +18,8 @@ describe "Java" do
             else
               expect(app.output).to include("Installing OpenJDK #{jdk_version}")
             end
+
+            expect(app.output).not_to include("WARNING: No OpenJDK version specified")
             expect(app.output).to include("BUILD SUCCESS")
             expect(successful_body(app)).to eq("Hello from Java!")
           end
@@ -29,13 +30,19 @@ describe "Java" do
 
   context "a system.properties file with no java.runtime.version" do
     it "should deploy" do
-      expected_version = "1.8"
       new_default_hatchet_runner("java-servlets-sample").tap do |app|
         app.before_deploy do
           write_sys_props(Dir.pwd, "maven.version=3.3.9")
         end
         app.deploy do
-          expect(app.output).to include("Installing OpenJDK #{expected_version}")
+          expect(app.output).to include("WARNING: No OpenJDK version specified")
+
+          if app.stack == "heroku-24" then
+            expect(app.output).to include("Installing OpenJDK 21")
+          else
+            expect(app.output).to include("Installing OpenJDK 1.8")
+          end
+
           expect(app.output).to include("BUILD SUCCESS")
           expect(successful_body(app)).to eq("Hello from Java!")
         end
@@ -60,6 +67,8 @@ describe "Java" do
             else
               expect(app.output).to include("Installing OpenJDK #{jdk_version}")
             end
+
+            expect(app.output).not_to include("WARNING: No OpenJDK version specified")
             expect(app.output).to include("BUILD SUCCESS")
 
             # Workaround (August 2020):
