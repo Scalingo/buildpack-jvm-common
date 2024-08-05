@@ -3,6 +3,27 @@
 ## [Unreleased]
 
 
+## [v155] - 2024-07-17
+
+### Changed
+
+* The value in `/sys/fs/cgroup/memory/memory.limit_in_bytes` is now explictly passed as `MaxRAM` to the JVM. ([#304](https://github.com/heroku/heroku-buildpack-jvm-common/pull/304))
+* Upgrade default JDKs to 22.0.2, 21.0.4, 17.0.12, 11.0.24 and 8u422. ([#307](https://github.com/heroku/heroku-buildpack-jvm-common/pull/307))
+
+## [v154] - 2024-05-29
+
+### Added
+
+* The buildpack now warns when no OpenJDK version is explicitly specified. Users are encouraged to specify a version to ensure future builds use the same OpenJDK version. ([#301](https://github.com/heroku/heroku-buildpack-jvm-common/pull/301))
+
+### Changed
+
+* Default JDK version for the `heroku-24` stack is now always the latest long-term support version, currently `21`. ([#300](https://github.com/heroku/heroku-buildpack-jvm-common/pull/300))
+
+## [v153] - 2024-05-21
+
+* Add support for `heroku-24` stack. ([#298](https://github.com/heroku/heroku-buildpack-jvm-common/pull/298))
+
 ## [v152] - 2024-05-01
 
 * Upgrade default JDKs to 22.0.1, 21.0.3, 17.0.11, 11.0.23 and 8u412. ([#296](https://github.com/heroku/heroku-buildpack-jvm-common/pull/296))
@@ -384,7 +405,10 @@ Improved smart defaults.
 * Increased default heap settings for Performance-L dynos
 * Added experimental support for JDBC_DATABASE_URL
 
-[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v152...main
+[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v155...main
+[v155]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v154...v155
+[v154]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v153...v154
+[v153]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v152...v153
 [v152]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v151...v152
 [v151]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v150...v151
 [v150]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v149...v150
