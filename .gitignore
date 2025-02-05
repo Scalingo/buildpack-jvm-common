@@ -3,3 +3,5 @@
 .DS_Store
 jvm-common.tar.xz
 heroku-buildpack-jvm-common.tgz
+.rspec_status
+*.iml
