@@ -4,265 +4,210 @@
 # The `bin/java` script is meant to be sourced so that functions like `install_java_with_overlay` can
 # be invoked.
 
-JVM_COMMON_DIR="${JVM_COMMON_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)}"
-if [ -f "${JVM_COMMON_DIR}/lib/jvm.sh" ]; then
-	# shellcheck source=lib/jvm.sh
-	source "${JVM_COMMON_DIR}/lib/jvm.sh"
-fi
+JVM_COMMON_BUILDPACK_DIR="${JVM_COMMON_BUILDPACK_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)}"
+
+# Some users use this buildpack outside of the Heroku platform where STACK might
+# not be set. It should always default to the latest stack.
+STACK="${STACK:-"scalingo-24"}"
+
+# shellcheck source=lib/output.sh
+source "${JVM_COMMON_BUILDPACK_DIR}/lib/output.sh"
+# shellcheck source=lib/inventory.sh
+source "${JVM_COMMON_BUILDPACK_DIR}/lib/inventory.sh"
+# shellcheck source=lib/java_properties.sh
+source "${JVM_COMMON_BUILDPACK_DIR}/lib/java_properties.sh"
 
 install_java_with_overlay() {
-	local buildDir="${1}"
-	local cacheDir="${2:-$(mktemp -d)}"
-	if [ ! -f "${buildDir}/.jdk/bin/java" ]; then
-		if [ -z "$(_get_system_property "${buildDir}/system.properties" "java.runtime.version")" ]; then
-			if [ "${STACK}" == "scalingo-24" ]; then
-				warning "No OpenJDK version specified
-Your application does not explicitly specify an OpenJDK
-version. The latest long-term support (LTS) version will be
-installed. This currently is OpenJDK ${DEFAULT_JDK_VERSION}.
+	local build_dir="${1}"
+	local openjdk_install_dir="${build_dir}/.jdk"
 
-This default version will change when a new LTS version is
-released. Your application might fail to build with the new
-version. We recommend explicitly setting the required OpenJDK
-version for your application.
+	if [ -d "${openjdk_install_dir}" ]; then
+		_conditional_meta_set "openjdk_version" "provided"
+		_conditional_meta_set "openjdk_distribution" "provided"
 
-To set the OpenJDK version, add or edit the system.properties
-file in the root directory of your application to contain:
+		output::step "Using provided JDK"
 
-java.runtime.version = ${DEFAULT_JDK_VERSION}
-"
-			else
-				warning "No OpenJDK version specified
-Your application does not explicitly specify an OpenJDK
-version. OpenJDK ${DEFAULT_JDK_VERSION} will be installed.
+		# This will also skip installation of `.profile.d` scripts and other files. This is intentional to preserve
+		# historical behaviour. Since the provided JDK feature will be removed at some later point, there are no plans
+		# to change this behaviour.
+		return 0
+	fi
 
-This default version will change at some point. Your
-application might fail to build with the new version. We
-recommend explicitly setting the required OpenJDK version for
-your application.
+	local openjdk_version_selector
+	openjdk_version_selector="$(java_properties::get "${build_dir}/system.properties" "java.runtime.version")"
+	_conditional_meta_set "openjdk_version_selector" "${openjdk_version_selector}"
 
-To set the OpenJDK version, add or edit the system.properties
-file in the root directory of your application to contain:
+	if [ -z "${openjdk_version_selector}" ]; then
+		if [ "${STACK}" == "scalingo-24" ]; then
+			# This should always be the latest OpenJDK LTS major version
+			# Next LTS will be OpenJDK 25 with a planned release date of 2025-09-16
+			openjdk_version_selector="21"
 
-java.runtime.version = ${DEFAULT_JDK_VERSION}
-"
-			fi
-		fi
+			output::warning <<-EOF
+				WARNING: No OpenJDK version specified
 
-		local jdkVersion
-		jdkVersion=$(get_jdk_version "${buildDir}")
+				Your application does not explicitly specify an OpenJDK
+				version. The latest long-term support (LTS) version will be
+				installed. This currently is OpenJDK ${openjdk_version_selector}.
 
-		local jdkUrl
-		jdkUrl=$(_get_jdk_url_with_default "${jdkVersion}")
+				This default version will change when a new LTS version is
+				released. Your application might fail to build with the new
+				version. We recommend explicitly setting the required OpenJDK
+				version for your application.
 
-		_jvm_mcount "version.${jdkVersion}"
-		if [[ "$jdkVersion" == *openjdk* ]]; then
-			status_pending "Installing Heroku OpenJDK $(_get_openjdk_version "${jdkVersion}")"
-			_jvm_mcount "vendor.openjdk"
-		elif [[ "$jdkVersion" == *heroku* ]]; then
-			status_pending "Installing Heroku OpenJDK $(_get_heroku_version "${jdkVersion}")"
-			_jvm_mcount "vendor.openjdk"
-		elif [[ "$jdkVersion" == *zulu* ]]; then
-			status_pending "Installing Azul Zulu OpenJDK $(_get_zulu_version "${jdkVersion}")"
-			_jvm_mcount "vendor.zulu"
+				To set the OpenJDK version, add or edit the system.properties
+				file in the root directory of your application to contain:
+
+				java.runtime.version = ${openjdk_version_selector}
+			EOF
 		else
-			status_pending "Installing OpenJDK ${jdkVersion}"
-			_jvm_mcount "vendor.default"
-		fi
-		install_java "${buildDir}" "${jdkVersion}" "${jdkUrl}"
-		install_jdk_overlay "${buildDir}/.jdk" "${buildDir}"
-		_cache_version "${jdkVersion}" "${cacheDir}"
-		status_done
-	else
-		status "Using provided JDK"
-		_jvm_mcount "vendor.provided"
-	fi
-}
+			openjdk_version_selector="1.8"
 
-install_java() {
-	local baseDir=${1?"Invalid directory to install java."}
+			output::warning <<-EOF
+				WARNING: No OpenJDK version specified
 
-	local jdkVersion="${2:-$DEFAULT_JDK_VERSION}"
-	local jdkUrl=${3:-$(_get_jdk_url_with_default "${jdkVersion}")}
-	local jdkDir="${baseDir}"/.jdk
-	local javaExe="${jdkDir}/bin/java"
-	mkdir -p "${jdkDir}"
+				Your application does not explicitly specify an OpenJDK
+				version. OpenJDK ${openjdk_version_selector} will be installed.
 
-	if [ ! -f "${javaExe}" ] || is_java_version_change "${jdkDir}" "${jdkVersion}"; then
-		rm -rf "${jdkDir}"
-		mkdir -p "${jdkDir}"
-		validate_jdk_url "${jdkUrl}" "${jdkVersion}"
-		install_jdk "${jdkUrl}" "${jdkDir}" "${JVM_COMMON_DIR}"
-		install_certs "${jdkDir}"
-		echo "${jdkVersion}" >"${jdkDir}/version"
-		if [ ! -f "${javaExe}" ]; then
-			error_return "Unable to retrieve the JDK."
-			return 1
+				This default version will change at some point. Your
+				application might fail to build with the new version. We
+				recommend explicitly setting the required OpenJDK version for
+				your application.
+
+				To set the OpenJDK version, add or edit the system.properties
+				file in the root directory of your application to contain:
+
+				java.runtime.version = ${openjdk_version_selector}
+			EOF
 		fi
 	fi
-	export JAVA_HOME=${jdkDir}
-	export PATH="${jdkDir}/bin:${PATH}"
 
-	install_profile "${JVM_COMMON_DIR}" "${baseDir}/.profile.d"
-	_install_tools "${baseDir}"
-	_create_export_script "${JAVA_HOME}" "$(pwd)"
-	_install_pgconfig "${JAVA_HOME}"
-	_install_default_proc_warn "${baseDir}"
-	install_metrics_agent "${JVM_COMMON_DIR}" "${baseDir}/.scalingo/bin" "${baseDir}/.profile.d"
-}
+	if ! openjdk_json=$(inventory::query "${openjdk_version_selector}" "${STACK}"); then
+		output::error <<-EOF
+			ERROR: Unsupported Java version: ${openjdk_version_selector}
 
-validate_jdk_url() {
-	local jdkUrl=${1}
-	local jdkVersion=${2}
-	if [ "$(_get_url_status "${jdkUrl}")" != "200" ]; then
-		echo ""
-		error_return "Unsupported Java version: $jdkVersion
+			Please check your system.properties file to ensure the java.runtime.version
+			is among the list of supported version:
+			https://doc.scalingo.com/languages/java/start#availability
 
-Please check your system.properties file to ensure the java.runtime.version
-is among the list of supported version on the documentation:
-https://doc.scalingo.com/languages/java/start#versions
-You can also remove the system.properties from your repo to install
-the default ${DEFAULT_JDK_VERSION} version.
-If you continue to have trouble, you can open a support ticket.
+			If you continue to have trouble, you can open a support ticket.
 
-Thanks,
-Scalingo"
+			Thanks,
+			Scalingo"
+		EOF
 		return 1
 	fi
-}
 
-is_java_version_change() {
-	jdkDir=$1
-	jdkVersion=${2:-${DEFAULT_JDK_VERSION}}
-	if [ ! -d "${jdkDir}" ]; then
-		echo "Invalid JDK directory."
-		return 1
+	local openjdk_version
+	openjdk_version=$(jq -r '.version' <<<"${openjdk_json}")
+
+	local openjdk_distribution
+	openjdk_distribution=$(jq -r '.metadata.distribution' <<<"${openjdk_json}")
+
+	local openjdk_distribution_name
+	case "${openjdk_distribution}" in
+	"zulu") openjdk_distribution_name="Azul Zulu OpenJDK" ;;
+	"heroku") openjdk_distribution_name="Heroku OpenJDK" ;;
+	*) openjdk_distribution_name="OpenJDK" ;;
+	esac
+
+	local openjdk_url
+	openjdk_url=$(jq -r '.url' <<<"${openjdk_json}")
+
+	_conditional_meta_set "openjdk_version" "${openjdk_version}"
+	_conditional_meta_set "openjdk_distribution" "${openjdk_distribution}"
+
+	output::step "Installing ${openjdk_distribution_name} ${openjdk_version}"
+
+	rm -rf "${openjdk_install_dir}"
+	mkdir "${openjdk_install_dir}"
+
+	# Download and extract OpenJDK distribution
+	local openjdk_install_start_time
+	openjdk_install_start_time=$(nowms)
+
+	local jdk_tarball="/tmp/jdk.tgz"
+	curl_with_defaults --retry 3 --silent --show-error --location "${openjdk_url}" --output "${jdk_tarball}"
+	tar -pxzf "${jdk_tarball}" -C "${openjdk_install_dir}"
+	rm "${jdk_tarball}"
+
+	_conditional_meta_time "openjdk_install_duration" "${openjdk_install_start_time}"
+
+	# Link base image Java keystore into the installed OpenJDK distribution, replacing the bundled
+	# certificates. Linking ensures that when the application image is rebased, the certificates are
+	# updated for JVM applications, even though the OpenJDK distribution itself doesn't change.
+	if [[ -f "/etc/ssl/certs/java/cacerts" ]]; then
+		for path in "${openjdk_install_dir}/jre/lib/security/cacerts" "${openjdk_install_dir}/lib/security/cacerts"; do
+			if [[ -f "${path}" ]]; then
+				mv "${path}" "${path}.old"
+				ln -s "/etc/ssl/certs/java/cacerts" "${path}"
+			fi
+		done
 	fi
-	test -f "${jdkDir}/version" && [ "$(cat "${jdkDir}/version")" != "${jdkVersion}" ]
-}
 
-# Legacy functions for backwards compatability
-detect_java_version() {
-	get_jdk_version "$1"
-}
+	# Download Heroku JVM metrics agent JAR
+	mkdir -p "${build_dir}/.scalingo/bin"
+	curl_with_defaults --retry 3 -s -o "${build_dir}/.scalingo/bin/heroku-metrics-agent.jar" -L "${HEROKU_METRICS_JAR_URL:-"https://repo1.maven.org/maven2/com/heroku/agent/heroku-java-metrics-agent/4.0.1/heroku-java-metrics-agent-4.0.1.jar"}"
 
-jdk_overlay() {
-	local buildDir=$1
-	install_jdk_overlay "${buildDir}/.jdk" "${buildDir}"
-}
+	# Copy profile.d scripts
+	local profile_d_dir="${build_dir}/.profile.d"
+	mkdir -p "${profile_d_dir}"
 
-# Internal functions
+	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jvmcommon.sh" "${profile_d_dir}"
+	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/default-proc-warning.sh" "${profile_d_dir}"
+	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jdbc.sh" "${profile_d_dir}"
+	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jvm-redis.sh" "${profile_d_dir}"
+	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/heroku-jvm-metrics.sh" "${profile_d_dir}"
 
-_install_tools() {
-	local ctxDir=${1:-BUILD_DIR}
-	local curDir=${JVM_COMMON_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)}
+	# Install tool scripts
+	cp -r "${JVM_COMMON_BUILDPACK_DIR}/opt/tools/"* "${build_dir}/.scalingo"
 
-	mkdir -p "$ctxDir/.scalingo/bin"
-	mkdir -p "$ctxDir/.scalingo/with_jmap/bin"
-	cp "$curDir/opt/with_jmap" "$ctxDir/.scalingo/bin/with_jmap"
-	cp "$curDir/opt/with_jmap_java" "$ctxDir/.scalingo/with_jmap/bin/java"
-	chmod +x "$ctxDir/.scalingo/bin/with_jmap"
-	chmod +x "$ctxDir/.scalingo/with_jmap/bin/java"
+	# Write export script for subsequent buildpacks to ensure they can use the installed OpenJDK.
+	# See: https://devcenter.heroku.com/articles/buildpack-api#composing-multiple-buildpacks
+	cat <<-EOF >"${JVM_COMMON_BUILDPACK_DIR}/export"
+		export JAVA_HOME=${openjdk_install_dir}
+		export PATH=\$JAVA_HOME/bin:\$PATH
+		export LD_LIBRARY_PATH="\$JAVA_HOME/jre/lib/amd64/server:\${LD_LIBRARY_PATH:-}"
+	EOF
 
-	mkdir -p "$ctxDir/.scalingo/with_jstack/bin"
-	cp "$curDir/opt/with_jstack" "$ctxDir/.scalingo/bin/with_jstack"
-	cp "$curDir/opt/with_jstack_java" "$ctxDir/.scalingo/with_jstack/bin/java"
-	chmod +x "$ctxDir/.scalingo/bin/with_jstack"
-	chmod +x "$ctxDir/.scalingo/with_jstack/bin/java"
+	# Source the export script manually here to ensure that other buildpacks that use this buildpack as a library
+	# also have the correct environment variables available.
+	# shellcheck source=/dev/null
+	source "${JVM_COMMON_BUILDPACK_DIR}/export"
 
-	mkdir -p "$ctxDir/.scalingo/with_jmap_and_jstack/bin"
-	cp "$curDir/opt/with_jmap_and_jstack" "$ctxDir/.scalingo/bin/with_jmap_and_jstack"
-	cp "$curDir/opt/with_jmap_and_jstack_java" "$ctxDir/.scalingo/with_jmap_and_jstack/bin/java"
-	chmod +x "$ctxDir/.scalingo/bin/with_jmap_and_jstack"
-	chmod +x "$ctxDir/.scalingo/with_jmap_and_jstack/bin/java"
-}
-
-_install_default_proc_warn() {
-	local ctxDir=${1:-BUILD_DIR}
-
-	mkdir -p "${ctxDir}/.profile.d"
-	cat <<EOF >"${ctxDir}/.profile.d/default-proc-warning.sh"
-if [ ! -f /app/Procfile ] && [ "\$CONTAINER" = "web.1" ]; then
-  echo "Create a Procfile to customize the command used to run this process: https://doc.scalingo.com/platform/app/procfile"
-fi
-EOF
-}
-
-_create_export_script() {
-	local javaHome=${1:-JAVA_HOME}
-	local ctxDir=${2:-CWD}
-
-	if [ -w "${ctxDir}" ]; then
-		cat <<EOF >"${ctxDir}/export"
-export JAVA_HOME=$javaHome
-export PATH=\$JAVA_HOME/bin:\$PATH
-export LD_LIBRARY_PATH="\$JAVA_HOME/jre/lib/amd64/server:\$LD_LIBRARY_PATH"
-EOF
+	# Install an extension into the OpenJDK distribution extension folder should is exist. This will only
+	# be the case for Java 8 as this OpenJDK feature was deprecated in 8u40.
+	# This JAR file sets `sslmode=require` for the postgres drivers.
+	local openjdk_jre_ext_dir="${openjdk_install_dir}/jre/lib/ext"
+	if [[ -d "${openjdk_jre_ext_dir}" ]] && [[ -z "${SKIP_PGCONFIG_INSTALL:-}" ]] && [[ "${CI:-}" != "true" ]]; then
+		curl_with_defaults --retry 3 -s -L "https://lang-jvm.s3.us-east-1.amazonaws.com/pgconfig.jar" -o "${openjdk_jre_ext_dir}/pgconfig.jar"
 	fi
-}
 
-_install_pgconfig() {
-	local javaHome=${1:-JAVA_HOME}
-	local extDir="${javaHome}/jre/lib/ext"
+	# Apply the JDK overlay to the installed OpenJDK
+	if [[ -d "${build_dir}/.jdk-overlay/" ]]; then
+		_conditional_meta_set "app_has_jdk_overlay" "true"
 
-	if [ -d "${extDir}" ] && [ -z "${SKIP_PGCONFIG_INSTALL:-}" ] && [ "${CI:-}" != "true" ]; then
-		curl_with_defaults --retry 3 -s -L "https://lang-jvm.s3.us-east-1.amazonaws.com/pgconfig.jar" -o "${extDir}/pgconfig.jar"
-	fi
-}
+		# Some symlinks need to be removed before the final cp command so that it doesn't fail.
+		for path in jre/lib/security/cacerts lib/security/cacerts; do
+			if [[ -f "${build_dir}/.jdk-overlay/${path}" ]] && [[ -f "${openjdk_install_dir}/${path}" ]]; then
+				rm "${openjdk_install_dir}/${path}"
+			fi
+		done
 
-# This function implements a legacy behavior in which the JDK_URL_1_8 or similar config var
-# could be used to override the URL to the JDK binary for a specific version. It's
-# not supported in the v3 implementation of the buildpack.
-_get_jdk_url_with_default() {
-	local jdkVersion="${1:?}"
-	if [ -n "${JDK_URL_1_7:-}" ] && { [ "$(expr "${jdkVersion}" : '^1.7')" != 0 ] || [ "$(expr "${jdkVersion}" : '^7')" != 0 ]; }; then
-		echo "$JDK_URL_1_7"
-	elif [ -n "${JDK_URL_1_8:-}" ] && { [ "$(expr "${jdkVersion}" : '^1.8')" != 0 ] || [ "$(expr "${jdkVersion}" : '^8')" != 0 ]; }; then
-		echo "$JDK_URL_1_8"
-	elif [ -n "${JDK_URL_1_9:-}" ] && { [ "$(expr "${jdkVersion}" : '^1.9')" != 0 ] || [ "$(expr "${jdkVersion}" : '^9')" != 0 ]; }; then
-		echo "$JDK_URL_1_9"
-	elif [ -n "${JDK_URL_10:-}" ] && [ "$(expr "${jdkVersion}" : '^10')" != 0 ]; then
-		echo "$JDK_URL_10"
-	elif [ -n "${JDK_URL_11:-}" ] && [ "$(expr "${jdkVersion}" : '^11')" != 0 ]; then
-		echo "$JDK_URL_11"
-	elif [ -n "${JDK_URL_12:-}" ] && [ "$(expr "${jdkVersion}" : '^12')" != 0 ]; then
-		echo "$JDK_URL_12"
-	elif [ -n "${JDK_URL_13:-}" ] && [ "$(expr "${jdkVersion}" : '^13')" != 0 ]; then
-		echo "$JDK_URL_13"
+		cp -r "${build_dir}/.jdk-overlay/"* "${openjdk_install_dir}"
 	else
-		get_jdk_url "$jdkVersion"
+		_conditional_meta_set "app_has_jdk_overlay" "false"
 	fi
 }
 
-_get_zulu_version() {
-	echo "${1//zulu-/}"
+# This file will be included by other buildpacks that might not have or might not have set up
+# the metadata file for reporting. To ensure we don't break those buildpacks but still be able to
+# set metadata about OpenJDK, we have wrapper functions that check for a proper setup first.
+
+_conditional_meta_set() {
+	if type -t meta_set >/dev/null; then meta_set "${1}" "${2}"; fi
 }
 
-_get_openjdk_version() {
-	echo "${1//openjdk-/}"
-}
-
-_get_heroku_version() {
-	echo "${1//heroku-/}"
-}
-
-_get_url_status() {
-	curl_with_defaults --retry 3 --silent --head -w "%{http_code}" -L "${1}" -o /dev/null
-}
-
-_jvm_mcount() {
-	if type -t mcount >/dev/null; then mcount "jvm.${1}"; fi
-}
-
-# Caching the JVM version will allow us to pin previous used defaults when
-# upgrading the default JDK. That is, if an app has JDK 8 installed now
-# because it's the default, it will continue to have JDK 8 installed when the
-# default is upgraded to JDK 11.
-_cache_version() {
-	local jdkVersion="${1}"
-	local cacheDir="${2}"
-
-	if [ -d "${cacheDir}" ]; then
-		echo "java.runtime.version=${jdkVersion}" >"${cacheDir}/system.properties"
-	fi
+_conditional_meta_time() {
+	if type -t meta_time >/dev/null; then meta_time "${1}" "${2}"; fi
 }

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# While these logging/output functions seem unused, they are used by downstream buildpacks that source this file.
+# Do not delete them before making sure that all known downstream buildpacks do not use these anymore.
+
 error() {
 	echo
 	echo " !     ERROR: $*" | indent no_first_line_indent
@@ -107,4 +110,8 @@ curl_with_defaults() {
 	fi
 
 	curl "${default_args[@]}" "${@}"
+}
+
+nowms() {
+	date +%s%3N
 }
