@@ -14,6 +14,11 @@ inventory::query() {
 	local raw_version_string="${1}"
 	local stack="${2}"
 
+	# Inventory file is done for heroku,so we have to update $stack:
+	stack="${stack/scalingo/heroku}"
+	# Remove '-minimal' from $stack:
+	stack="${stack/-minimal/}"
+
 	local default_distribution="zulu"
 	if [[ "${stack}" == "heroku-20" ]]; then
 		default_distribution="heroku"
