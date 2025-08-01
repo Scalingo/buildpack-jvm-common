@@ -3,15 +3,64 @@
 ## [Unreleased]
 
 
+## [v167] - 2025-07-31
+
+* Redirect JAVA_TOOL_OPTIONS logging to stderr to fix MCP server compatibility. ([#379](https://github.com/heroku/heroku-buildpack-jvm-common/pull/379))
+
+## [v166] - 2025-07-16
+
+* Upgrade default JDKs to `24.0.2`, `21.0.8`, `17.0.16`, `11.0.28` and `8u462`. ([#374](https://github.com/heroku/heroku-buildpack-jvm-common/pull/374))
+
+## [v165] - 2025-07-14
+
+* Remove heroku-20 support ([#365](https://github.com/heroku/heroku-buildpack-jvm-common/pull/365))
+
+## [v164] - 2025-04-25
+
+* Upgrade default JDKs to `24.0.1`, `21.0.7`, `17.0.15`, `11.0.27` and `8u452`. ([#362](https://github.com/heroku/heroku-buildpack-jvm-common/pull/362))
+
+## [v163] - 2025-04-23
+
+### Changed
+
+* OpenJDK distributions are now downloaded from `heroku-buildpacks-jvm.s3.us-east-1.amazonaws.com` instead of `lang-jvm.s3.us-east-1.amazonaws.com`. For users of the Heroku platform, this change has no significance. When users use this buildpack outside of the Heroku platform, firewalls might need reconfiguration to allow the OpenJDK downloads from the new location. ([#359](https://github.com/heroku/heroku-buildpack-jvm-common/pull/359))
+
+## [v162] - 2025-03-19
+
+### Changed
+
+* `-XX:+UseContainerSupport` is no longer being set in `JAVA_TOOL_OPTIONS`. This flag is set by default since OpenJDK `10` and `8u191`. All versions supported by this buildpack do have this default - therefore this change has no effect on the final JVM flags. ([#348](https://github.com/heroku/heroku-buildpack-jvm-common/pull/348))
+* For `Performance-M` and `Performance-L` dynos, the buildpack no longer sets `-Xmx` to configure the maximum heap size. Instead, `-XX:MaxRAMPercentage=80.0` is used which has the same effect. The effective maximum heap size set for those dynos does not change. When users set `-Xmx` explicitly, it will still take precedence. ([#348](https://github.com/heroku/heroku-buildpack-jvm-common/pull/348))
+* Previously, when an app had `-Xmx` in its `JAVA_OPTS` configuration variables, all Heroku default JVM options were not set. This was inconsistent with `JAVA_TOOL_OPTIONS` which didn't have that mechanism. For consistency, all Heroku JVM defaults will now be always applied. Since the buildpack adds its defaults before the ones explicitly set by the user, they can be overridden. In practice, this only affects `Eco`, `Basic`, `Standard-1X` and `Standard-2X` dynos which are the only sizes that have more default flags than just `-Xmx`. All dynos of the aforementioned sizes also have `-XX:CICompilerCount=2` set. `Eco`, `Basic` and `Standard-1X` also set `-Xss512k`. If your app relied on those not being set, you will have to explicitly configure them now. However, we believe these settings are good defaults for apps running on dynos with little RAM and you should not override them unnecessarily. ([#348](https://github.com/heroku/heroku-buildpack-jvm-common/pull/348))
+
+### Added
+
+* The already existing notice about default JVM flags is now always printed when the defaults are applied. Previously, this notice was only printed for `web` process types. The notice looks like this: `Setting JAVA_TOOL_OPTIONS defaults based on dyno size. Custom settings will override them.`. ([#348](https://github.com/heroku/heroku-buildpack-jvm-common/pull/348))
+* Support for Java 24. ([#353](https://github.com/heroku/heroku-buildpack-jvm-common/pull/353))
+
+## [v161] - 2025-03-12
+
+### Changed
+
+* Deprecated `install_java_with_overlay` function. Buildpacks using this function should now use `install_openjdk` instead. See `README.md` for a usage example. ([#346](https://github.com/heroku/heroku-buildpack-jvm-common/pull/346))
+
+### Added
+
+* Support for `DATABASE_URL` values that use the `mariadb` scheme. ([#341](https://github.com/heroku/heroku-buildpack-jvm-common/pull/341))
+
+### Removed
+
+* `export_env_dir`, `copy_directories`, `curl_with_defaults` and `nowms` functions from `bin/util`. ([#344](https://github.com/heroku/heroku-buildpack-jvm-common/pull/344))
+
 ## [v160] - 2025-02-19
 
 ### Removed
 
-* Support for `JDK_URL_1_7`, `JDK_URL_1_8`, `JDK_URL_1_9`, `JDK_URL_10`, `JDK_URL_11`, `JDK_URL_12` environment variables to override OpenJDK download locations. ([#339](https://github.com/heroku/heroku-buildpack-jvm-common/pull/339)
+* Support for `JDK_URL_1_7`, `JDK_URL_1_8`, `JDK_URL_1_9`, `JDK_URL_10`, `JDK_URL_11`, `JDK_URL_12` environment variables to override OpenJDK download locations. ([#339](https://github.com/heroku/heroku-buildpack-jvm-common/pull/339))
 
 ### Changed
 
-* The buildpack output will now explicitly mention the installed OpenJDK version instead of displaying only the major version. ([#339](https://github.com/heroku/heroku-buildpack-jvm-common/pull/339)
+* The buildpack output will now explicitly mention the installed OpenJDK version instead of displaying only the major version. ([#339](https://github.com/heroku/heroku-buildpack-jvm-common/pull/339))
 
 ## [v159] - 2025-02-17
 
@@ -443,7 +492,14 @@ Improved smart defaults.
 * Increased default heap settings for Performance-L dynos
 * Added experimental support for JDBC_DATABASE_URL
 
-[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v160...main
+[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v167...main
+[v167]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v166...v167
+[v166]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v165...v166
+[v165]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v164...v165
+[v164]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v163...v164
+[v163]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v162...v163
+[v162]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v161...v162
+[v161]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v160...v161
 [v160]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v159...v160
 [v159]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v158...v159
 [v158]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v157...v158

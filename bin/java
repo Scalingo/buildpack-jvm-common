@@ -4,26 +4,27 @@
 # The `bin/java` script is meant to be sourced so that functions like `install_java_with_overlay` can
 # be invoked.
 
-JVM_COMMON_BUILDPACK_DIR="${JVM_COMMON_BUILDPACK_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)}"
+JVM_COMMON_BUILDPACK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 
 # Some users use this buildpack outside of the Heroku platform where STACK might
 # not be set. It should always default to the latest stack.
-STACK="${STACK:-"scalingo-24"}"
+STACK="${STACK:-"scalingo-22"}"
 
-# shellcheck source=lib/output.sh
+source "${JVM_COMMON_BUILDPACK_DIR}/lib/util.sh"
 source "${JVM_COMMON_BUILDPACK_DIR}/lib/output.sh"
-# shellcheck source=lib/inventory.sh
 source "${JVM_COMMON_BUILDPACK_DIR}/lib/inventory.sh"
-# shellcheck source=lib/java_properties.sh
 source "${JVM_COMMON_BUILDPACK_DIR}/lib/java_properties.sh"
 
-install_java_with_overlay() {
+install_openjdk() {
 	local build_dir="${1}"
+	# Root directory of the buildpack that invoked this function
+	local host_buildpack_dir="${2}"
+
 	local openjdk_install_dir="${build_dir}/.jdk"
 
 	if [ -d "${openjdk_install_dir}" ]; then
-		_conditional_meta_set "openjdk_version" "provided"
-		_conditional_meta_set "openjdk_distribution" "provided"
+		metrics::conditional_set_string "openjdk_version" "provided"
+		metrics::conditional_set_string "openjdk_distribution" "provided"
 
 		output::step "Using provided JDK"
 
@@ -35,7 +36,7 @@ install_java_with_overlay() {
 
 	local openjdk_version_selector
 	openjdk_version_selector="$(java_properties::get "${build_dir}/system.properties" "java.runtime.version")"
-	_conditional_meta_set "openjdk_version_selector" "${openjdk_version_selector}"
+	metrics::conditional_set_string "openjdk_version_selector" "${openjdk_version_selector}"
 
 	if [ -z "${openjdk_version_selector}" ]; then
 		if [ "${STACK}" == "scalingo-24" ]; then
@@ -114,8 +115,8 @@ install_java_with_overlay() {
 	local openjdk_url
 	openjdk_url=$(jq -r '.url' <<<"${openjdk_json}")
 
-	_conditional_meta_set "openjdk_version" "${openjdk_version}"
-	_conditional_meta_set "openjdk_distribution" "${openjdk_distribution}"
+	metrics::conditional_set_string "openjdk_version" "${openjdk_version}" || true
+	metrics::conditional_set_string "openjdk_distribution" "${openjdk_distribution}"
 
 	output::step "Installing ${openjdk_distribution_name} ${openjdk_version}"
 
@@ -124,14 +125,14 @@ install_java_with_overlay() {
 
 	# Download and extract OpenJDK distribution
 	local openjdk_install_start_time
-	openjdk_install_start_time=$(nowms)
+	openjdk_install_start_time=$(util::nowms)
 
 	local jdk_tarball="/tmp/jdk.tgz"
-	curl_with_defaults --retry 3 --silent --show-error --location "${openjdk_url}" --output "${jdk_tarball}"
+	util::curl_with_defaults --retry 3 --silent --show-error --location "${openjdk_url}" --output "${jdk_tarball}"
 	tar -pxzf "${jdk_tarball}" -C "${openjdk_install_dir}"
 	rm "${jdk_tarball}"
 
-	_conditional_meta_time "openjdk_install_duration" "${openjdk_install_start_time}"
+	metrics::conditional_set_duration "openjdk_install_duration" "${openjdk_install_start_time}"
 
 	# Link base image Java keystore into the installed OpenJDK distribution, replacing the bundled
 	# certificates. Linking ensures that when the application image is rebased, the certificates are
@@ -147,7 +148,7 @@ install_java_with_overlay() {
 
 	# Download Heroku JVM metrics agent JAR
 	mkdir -p "${build_dir}/.scalingo/bin"
-	curl_with_defaults --retry 3 -s -o "${build_dir}/.scalingo/bin/heroku-metrics-agent.jar" -L "${HEROKU_METRICS_JAR_URL:-"https://repo1.maven.org/maven2/com/heroku/agent/heroku-java-metrics-agent/4.0.1/heroku-java-metrics-agent-4.0.1.jar"}"
+	util::curl_with_defaults --retry 3 -s -o "${build_dir}/.scalingo/bin/heroku-metrics-agent.jar" -L "${HEROKU_METRICS_JAR_URL:-"https://repo1.maven.org/maven2/com/heroku/agent/heroku-java-metrics-agent/4.0.1/heroku-java-metrics-agent-4.0.1.jar"}"
 
 	# Copy profile.d scripts
 	local profile_d_dir="${build_dir}/.profile.d"
@@ -163,29 +164,32 @@ install_java_with_overlay() {
 	cp -r "${JVM_COMMON_BUILDPACK_DIR}/opt/tools/"* "${build_dir}/.scalingo"
 
 	# Write export script for subsequent buildpacks to ensure they can use the installed OpenJDK.
+	# Note that this is not using JVM_COMMON_BUILDPACK_DIR but the directory of the buildpack that
+	# invoked this function to write it to the correct location.
+	#
 	# See: https://devcenter.heroku.com/articles/buildpack-api#composing-multiple-buildpacks
-	cat <<-EOF >"${JVM_COMMON_BUILDPACK_DIR}/export"
+	cat <<-EOF >>"${host_buildpack_dir}/export"
 		export JAVA_HOME=${openjdk_install_dir}
 		export PATH=\$JAVA_HOME/bin:\$PATH
-		export LD_LIBRARY_PATH="\$JAVA_HOME/jre/lib/amd64/server:\${LD_LIBRARY_PATH:-}"
+		export LD_LIBRARY_PATH="\$JAVA_HOME/jre/lib/amd64/server\${LD_LIBRARY_PATH:+:}\${LD_LIBRARY_PATH:-}"
 	EOF
 
 	# Source the export script manually here to ensure that other buildpacks that use this buildpack as a library
 	# also have the correct environment variables available.
 	# shellcheck source=/dev/null
-	source "${JVM_COMMON_BUILDPACK_DIR}/export"
+	source "${host_buildpack_dir}/export"
 
 	# Install an extension into the OpenJDK distribution extension folder should is exist. This will only
 	# be the case for Java 8 as this OpenJDK feature was deprecated in 8u40.
 	# This JAR file sets `sslmode=require` for the postgres drivers.
 	local openjdk_jre_ext_dir="${openjdk_install_dir}/jre/lib/ext"
 	if [[ -d "${openjdk_jre_ext_dir}" ]] && [[ -z "${SKIP_PGCONFIG_INSTALL:-}" ]] && [[ "${CI:-}" != "true" ]]; then
-		curl_with_defaults --retry 3 -s -L "https://lang-jvm.s3.us-east-1.amazonaws.com/pgconfig.jar" -o "${openjdk_jre_ext_dir}/pgconfig.jar"
+		util::curl_with_defaults --retry 3 -s -L "https://lang-jvm.s3.us-east-1.amazonaws.com/pgconfig.jar" -o "${openjdk_jre_ext_dir}/pgconfig.jar"
 	fi
 
 	# Apply the JDK overlay to the installed OpenJDK
 	if [[ -d "${build_dir}/.jdk-overlay/" ]]; then
-		_conditional_meta_set "app_has_jdk_overlay" "true"
+		metrics::conditional_set_raw "app_has_jdk_overlay" "true"
 
 		# Some symlinks need to be removed before the final cp command so that it doesn't fail.
 		for path in jre/lib/security/cacerts lib/security/cacerts; do
@@ -196,18 +200,47 @@ install_java_with_overlay() {
 
 		cp -r "${build_dir}/.jdk-overlay/"* "${openjdk_install_dir}"
 	else
-		_conditional_meta_set "app_has_jdk_overlay" "false"
+		metrics::conditional_set_raw "app_has_jdk_overlay" "false"
 	fi
+}
+
+# Deprecated legacy function to install OpenJDK, we're keeping it around to not break
+# existing buildpacks that use it. If you're implementing a new buildpack, do not use
+# this function.
+install_java_with_overlay() {
+	local build_dir="${1}"
+
+	# The old API expected the cache directory as the second argument.
+	# We're explicitly spelling this out here for documentation purposes,
+	# but it's not used by the new OpenJDK installation function.
+	# shellcheck disable=SC2034
+	local cache_dir="${2}"
+
+	# The old function didn't use an explicit buildpack directory but used the current working directory instead.
+	install_openjdk "${build_dir}" "$(pwd)"
 }
 
 # This file will be included by other buildpacks that might not have or might not have set up
 # the metadata file for reporting. To ensure we don't break those buildpacks but still be able to
 # set metadata about OpenJDK, we have wrapper functions that check for a proper setup first.
 
-_conditional_meta_set() {
-	if type -t meta_set >/dev/null; then meta_set "${1}" "${2}"; fi
+# Creates a conditional function wrapper that only calls the target function if it exists.
+# This ensures that metrics functions don't fail when metrics are not set up.
+#
+# Usage:
+# ```
+# _install_conditional_function_wrapper metrics::conditional_set_raw metrics::set_raw
+# ```
+_install_conditional_function_wrapper() {
+	local wrapper_function_name="${1}"
+	local target_function_name="${2}"
+
+	eval "${wrapper_function_name}() { if type -t ${target_function_name} >/dev/null; then ${target_function_name} \"\$@\"; fi }"
 }
 
-_conditional_meta_time() {
-	if type -t meta_time >/dev/null; then meta_time "${1}" "${2}"; fi
-}
+_install_conditional_function_wrapper metrics::conditional_set_raw metrics::set_raw
+_install_conditional_function_wrapper metrics::conditional_set_string metrics::set_string
+_install_conditional_function_wrapper metrics::conditional_set_duration metrics::set_duration
+
+source "${JVM_COMMON_BUILDPACK_DIR}/lib/legacy.sh"
+legacy::install_removed_function_handler install_java validate_jdk_url is_java_version_change detect_java_version jdk_overlay

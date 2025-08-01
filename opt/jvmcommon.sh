@@ -1,76 +1,79 @@
 #!/usr/bin/env bash
 
-calculate_java_memory_opts() {
-	local opts=${1:-""}
+export JAVA_HOME="${HOME}/.jdk"
+export PATH="${HOME}/.scalingo/bin:${PATH}"
+export PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Path is OpenJDK version dependent
+for path in "${JAVA_HOME}/lib/server" "${JAVA_HOME}/jre/lib/amd64/server"; do
+	if [[ -d "${path}" ]]; then
+		export LD_LIBRARY_PATH="${path}${LD_LIBRARY_PATH:+":"}${LD_LIBRARY_PATH:-}"
+	fi
+done
+
+jvm_options() {
+	local flags=(
+		# Default to UTF-8 encoding when no charset is specified for methods in the Java standard library.
+		# This makes programs more predictable and has been a default on Heroku for a many years. For OpenJDK >= 18,
+		# setting this is technically no longer necessary as it is the default.
+		# See JEP-400 for details: https://openjdk.org/jeps/400
+		"-Dfile.encoding=UTF-8"
+	)
+
 	local memory_limit_file='/sys/fs/cgroup/memory/memory.limit_in_bytes'
 
 	if [[ -f "${memory_limit_file}" ]]; then
 		local memory_limit
-		memory_limit=$( cat "${memory_limit_file}" )
+		memory_limit="$( cat "${memory_limit_file}" )"
 
 		# Ignore values above 1TiB RAM, since when using cgroups v1 the limits file reports a
 		# bogus value of thousands of TiB RAM when there is no container memory limit set.
-		if ((memory_limit <= 1099511627776)); then
-			# The JVM tries to automatically detect the amount of available RAM for its heuristics. However,
-			# the detection has proven to be sometimes inaccurate in certain dyno configurations. MaxRAM is used
-			# by the JVM to derive other flags from it.
-			opts="${opts} -XX:MaxRAM=${memory_limit}"
-
-			case $memory_limit in
-			268435456)   # 256M   - S
-				echo "$opts -Xmx160m -Xss512k -XX:CICompilerCount=2"
-				return 0
-				;;
-			536870912)   # 512M   - M
-				echo "$opts -Xmx300m -Xss512k -XX:CICompilerCount=2"
-				return 0
-				;;
-			1073741824)  # 1024M  - L
-				echo "$opts -Xmx671m -XX:CICompilerCount=2"
-				return 0
-				;;
-			2147483648)  # 2048M  - XL
-				echo "$opts -Xmx1536m -XX:CICompilerCount=2"
-				return 0
-				;;
-			esac
+		if ((memory_limit > 1099511627776)); then
+			unset memory_limit
 		fi
 	fi
 
-	# In all other cases, rely on JVM ergonomics for other container sizes, but
-	# increase the maximum RAM percentage from 25% (Java's default) to 80%.
-	echo "$opts -XX:MaxRAMPercentage=80.0"
+	if [[ -n "${memory_limit}" ]]; then
+		# The JVM tries to automatically detect the amount of available RAM for its heuristics. However,
+		# the detection has proven to be sometimes inaccurate in certain configurations.
+		# MaxRAM is used by the JVM to derive other flags from it.
+		flags+=("-XX:MaxRAM=${memory_limit}")
+	fi
+
+	case "${memory_limit:-}" in
+		268435456)   # 256M   - S
+			flags+=("-Xmx160m" "-Xss512k" "-XX:CICompilerCount=2")
+			;;
+		536870912)   # 512M   - M
+			flags+=("-Xmx300m" "-Xss512k" "-XX:CICompilerCount=2")
+			;;
+		1073741824)  # 1024M  - L
+			flags+=("-Xmx671m" "-XX:CICompilerCount=2")
+			;;
+		2147483648)  # 2048M  - XL
+			flags+=("-Xmx1536m" "-XX:CICompilerCount=2")
+			;;
+		*)
+			# In all other cases, rely on JVM ergonomics for other container sizes, but
+			# increase the maximum RAM percentage from 25% (Java's default) to 80%.
+			flags+=("-XX:MaxRAMPercentage=80.0")
+			;;
+	esac
+
+	(
+		IFS=" "
+		echo "${flags[*]}"
+	)
 }
 
-if [[ -d $HOME/.jdk ]]; then
-	export JAVA_HOME="$HOME/.jdk"
-	export PATH="$HOME/.scalingo/bin:$JAVA_HOME/bin:$PATH"
-else
-	JAVA_HOME="$(realpath "$(dirname "$(command -v java)")/..")"
-	export JAVA_HOME
-fi
+jvm_options="$(jvm_options)"
+export JAVA_OPTS="${jvm_options}${JAVA_OPTS:+" "}${JAVA_OPTS:-}"
 
-if [[ -d "$JAVA_HOME/jre/lib/amd64/server" ]]; then
-	export LD_LIBRARY_PATH="$JAVA_HOME/jre/lib/amd64/server:$LD_LIBRARY_PATH"
-elif [[ -d "$JAVA_HOME/lib/server" ]]; then
-	export LD_LIBRARY_PATH="$JAVA_HOME/lib/server:$LD_LIBRARY_PATH"
-fi
 
-if [ -f "$JAVA_HOME/release" ] && grep -q '^JAVA_VERSION="1[0-9]' "$JAVA_HOME/release"; then
-	default_java_mem_opts="$(calculate_java_memory_opts "-XX:+UseContainerSupport")"
-else
-	default_java_mem_opts="$(calculate_java_memory_opts | sed 's/^ //')"
-fi
-
-if echo "${JAVA_OPTS:-}" | grep -q "\-Xmx"; then
-	export JAVA_TOOL_OPTIONS=${JAVA_TOOL_OPTIONS:-"-Dfile.encoding=UTF-8"}
-else
-	default_java_opts="${default_java_mem_opts} -Dfile.encoding=UTF-8"
-	export JAVA_OPTS="${default_java_opts} ${JAVA_OPTS:-}"
-	if echo "${CONTAINER}" | grep -vq '^one-off-.*$'; then
-		export JAVA_TOOL_OPTIONS="${default_java_opts} ${JAVA_TOOL_OPTIONS:-}"
-	fi
-	if echo "${CONTAINER}" | grep -q '^web-.*$'; then
-		echo "Setting JAVA_TOOL_OPTIONS defaults based on container size. Custom settings will override them."
-	fi
+# FYI, at Heroku, one-offs have a process type starting with "run.*"
+if ! [[ "${CONTAINER}" =~ ^one-off-.*$ ]]; then
+	# Redirecting to stderr to avoid polluting the application's stdout stream. This is especially important for
+	# MCP servers using the stdio transport: https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#stdio
+	echo "Setting JAVA_TOOL_OPTIONS defaults based on container size. Custom settings will override them." >&2
+	export JAVA_TOOL_OPTIONS="${jvm_options}${JAVA_TOOL_OPTIONS:+" "}${JAVA_TOOL_OPTIONS:-}"
 fi
