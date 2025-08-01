@@ -65,9 +65,9 @@ which s3cmd >/dev/null ||
   exit 1
 
 s3_bucket="buildpacks-repository"
-s3cmd_cmd="s3cmd --access_key=${S3_ACCESS_KEY} --secret_key=${S3_SECRET_KEY}"
+s3cmd_cmd="s3cmd --access_key=${AWS_ACCESS_KEY} --secret_key=${AWS_SECRET_KEY}"
 
-if [[ -z "${S3_ACCESS_KEY}" ]] || [[ -z "${S3_SECRET_KEY}" ]]; then
+if [[ -z "${AWS_ACCESS_KEY}" ]] || [[ -z "${AWS_SECRET_KEY}" ]]; then
   s3cmd_cmd="s3cmd --config ${HOME}/.s3cfg"
 fi
 
