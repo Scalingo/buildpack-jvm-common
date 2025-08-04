@@ -4,9 +4,10 @@
 # parse a TOML file in bash. You can get it here:
 # https://github.com/freshautomations/stoml.
 #
-# You should define two environment variable for the S3 upload to work:
-#   - S3_ACCESS_KEY
-#   - S3_SECRET_KEY
+# You should define three environment variables for the S3 upload to work:
+#   - AWS_ACCESS_KEY_ID
+#   - AWS_SECRET_ACCESS_KEY
+#   - AWS_SESSION_TOKEN
 #
 # If you need some credentials, go here:
 # https://console.aws.amazon.com/iam/home?region=eu-central-1#/users
@@ -65,16 +66,16 @@ which s3cmd >/dev/null ||
   exit 1
 
 s3_bucket="buildpacks-repository"
-s3cmd_cmd="s3cmd --access_key=${AWS_ACCESS_KEY} --secret_key=${AWS_SECRET_KEY}"
-
-if [[ -z "${AWS_ACCESS_KEY}" ]] || [[ -z "${AWS_SECRET_KEY}" ]]; then
-  s3cmd_cmd="s3cmd --config ${HOME}/.s3cfg"
-fi
 
 echo "---> Uploading ${archive_name} to S3 (${s3_bucket})"
-echo ""
 
-${s3cmd_cmd} --quiet --acl-public put "${archive_name}" "s3://${s3_bucket}/"
+s3cmd \
+	--access_key="${AWS_ACCESS_KEY_ID}" \
+	--secret_key="${AWS_SECRET_ACCESS_KEY}" \
+	--access_token="${AWS_SESSION_TOKEN}" \
+	--acl-public --quiet \
+	put "${archive_name}" \
+	"s3://${s3_bucket}/"
 
 if [[ $? -ne 0 ]]; then
   echo "Error uploading the archive to S3" >&2
