@@ -3,6 +3,22 @@
 ## [Unreleased]
 
 
+## [v171] - 2025-09-12
+
+* Add version selection hint to unsupported Java version error message. ([#392](https://github.com/heroku/heroku-buildpack-jvm-common/pull/392))
+
+## [v170] - 2025-09-04
+
+* Fix `jdbc.sh` script when used with `set -euo pipefail`. ([#390](https://github.com/heroku/heroku-buildpack-jvm-common/pull/390))
+
+## [v169] - 2025-09-02
+
+* Fix `java_properties::get` function when used with `set -euo pipefail`. ([#386](https://github.com/heroku/heroku-buildpack-jvm-common/pull/386))
+
+## [v168] - 2025-08-04
+
+* Do not log JAVA_TOOL_OPTIONS messages on MCP servers. ([#382](https://github.com/heroku/heroku-buildpack-jvm-common/pull/382))
+
 ## [v167] - 2025-07-31
 
 * Redirect JAVA_TOOL_OPTIONS logging to stderr to fix MCP server compatibility. ([#379](https://github.com/heroku/heroku-buildpack-jvm-common/pull/379))
@@ -492,7 +508,11 @@ Improved smart defaults.
 * Increased default heap settings for Performance-L dynos
 * Added experimental support for JDBC_DATABASE_URL
 
-[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v167...main
+[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v171...main
+[v171]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v170...v171
+[v170]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v169...v170
+[v169]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v168...v169
+[v168]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v167...v168
 [v167]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v166...v167
 [v166]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v165...v166
 [v165]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v164...v165
