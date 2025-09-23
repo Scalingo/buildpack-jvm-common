@@ -41,8 +41,8 @@ install_openjdk() {
 	if [ -z "${openjdk_version_selector}" ]; then
 		if [ "${STACK}" == "scalingo-24" ]; then
 			# This should always be the latest OpenJDK LTS major version
-			# Next LTS will be OpenJDK 25 with a planned release date of 2025-09-16
-			openjdk_version_selector="21"
+			# Next LTS will be OpenJDK 29 (~September 2027, no scheduled release date yet)
+			openjdk_version_selector="25"
 
 			output::warning <<-EOF
 				Warning: No OpenJDK version specified
@@ -161,7 +161,7 @@ install_openjdk() {
 	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jvmcommon.sh" "${profile_d_dir}"
 	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/default-proc-warning.sh" "${profile_d_dir}"
 	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jdbc.sh" "${profile_d_dir}"
-	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jvm-redis.sh" "${profile_d_dir}"
+	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jvm-spring-configuration.sh" "${profile_d_dir}"
 	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/heroku-jvm-metrics.sh" "${profile_d_dir}"
 
 	# Install tool scripts
