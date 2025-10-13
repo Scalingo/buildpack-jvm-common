@@ -3,12 +3,17 @@
 ## [Unreleased]
 
 
+## [v174] - 2025-09-26
+
+### Added
+
+* Additional internal metrics. ([#400](https://github.com/heroku/heroku-buildpack-jvm-common/pull/400))
+
 ## [v173] - 2025-09-19
 
 ### Added
 
 * Support for automatic Spring AI configuration mapping from Heroku Managed Inference and Agents (MIA) environment variables. ([#398](https://github.com/heroku/heroku-buildpack-jvm-common/pull/398))
-
 
 ## [v172] - 2025-09-17
 
@@ -525,7 +530,8 @@ Improved smart defaults.
 * Increased default heap settings for Performance-L dynos
 * Added experimental support for JDBC_DATABASE_URL
 
-[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v173...main
+[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v174...main
+[v174]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v173...v174
 [v173]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v172...v173
 [v172]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v171...v172
 [v171]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v170...v171
