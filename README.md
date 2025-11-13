@@ -50,7 +50,7 @@ JVM_BUILDPACK_URL="https://buildpacks-repository.s3.eu-central-1.amazonaws.com/j
 
 mkdir -p /tmp/jvm-common
 curl --silent --fail --retry 3 --retry-connrefused --connect-timeout 5 \
-    --location $JVM_BUILDPACK_URL \
+    --location "${JVM_BUILDPACK_URL}" \
     | tar --extract --xz --touch --directory=/tmp/jvm-common --strip-components=1
 
 # Source in a sub-shell to keep your buildpack's environment clean
