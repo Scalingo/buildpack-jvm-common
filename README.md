@@ -49,10 +49,13 @@ HOST_BUILDPACK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 JVM_BUILDPACK_URL="https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm-common.tar.xz"
 
 mkdir -p /tmp/jvm-common
-curl --silent --fail --retry 3 --retry-connrefused --connect-timeout 5 --location $JVM_BUILDPACK_URL | tar xzm -C /tmp/jvm-common --strip-components=1
+curl --silent --fail --retry 3 --retry-connrefused --connect-timeout 5 \
+    --location $JVM_BUILDPACK_URL \
+    | tar --extract --xz --touch --directory=/tmp/jvm-common --strip-components=1
 
 # Source in a sub-shell to keep your buildpack's environment clean
-( source /tmp/jvm-common/bin/java && install_openjdk "${BUILD_DIR}" "${HOST_BUILDPACK_DIR}" )
+( source /tmp/jvm-common/bin/java \
+    && install_openjdk "${BUILD_DIR}" "${HOST_BUILDPACK_DIR}" )
 
 # Source the export file to get environment variables like JAVA_HOME and PATH
 source "${HOST_BUILDPACK_DIR}/export"
