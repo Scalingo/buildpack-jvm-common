@@ -6,10 +6,8 @@ buildpack](https://doc.scalingo.com/platform/deployment/buildpacks) for
 build an application. It is used by the
 [Java](https://github.com/Scalingo/java-buildpack),
 [Java WAR](https://github.com/Scalingo/java-war-buildpack),
-[Gradle](https://github.com/Scalingo/gradle-buildpack),
-[Play!](https://github.com/Scalingo/play-buildpack),
-[Scala](https://github.com/Scalingo/scala-buildpack), and
-[Clojure](https://github.com/Scalingo/clojure-buildpack) buildpacks.
+[Gradle](https://github.com/Scalingo/gradle-buildpack), and
+[Scala](https://github.com/Scalingo/scala-buildpack) buildpacks.
 
 ## Standalone Usage
 
@@ -46,12 +44,12 @@ behavior and versioning on Scalingo.
 # Determine the root directory of your own (host) buildpack
 HOST_BUILDPACK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 
-JVM_BUILDPACK_URL="https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm-common.tar.xz"
+JVM_BUILDPACK_URL="https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm-common.tgz"
 
 mkdir -p /tmp/jvm-common
 curl --silent --fail --retry 3 --retry-connrefused --connect-timeout 5 \
     --location "${JVM_BUILDPACK_URL}" \
-    | tar --extract --xz --touch --directory=/tmp/jvm-common --strip-components=1
+    | tar --extract --gzip --touch --directory=/tmp/jvm-common --strip-components=1
 
 # Source in a sub-shell to keep your buildpack's environment clean
 ( source /tmp/jvm-common/bin/java \
