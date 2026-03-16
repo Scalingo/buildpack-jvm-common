@@ -44,12 +44,12 @@ behavior and versioning on Scalingo.
 # Determine the root directory of your own (host) buildpack
 HOST_BUILDPACK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && cd .. && pwd)"
 
-JVM_BUILDPACK_URL="https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm-common.tgz"
+JVM_BUILDPACK_URL="https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm-common.tar.xz"
 
 mkdir -p /tmp/jvm-common
 curl --silent --fail --retry 3 --retry-connrefused --connect-timeout 5 \
     --location "${JVM_BUILDPACK_URL}" \
-    | tar --extract --gzip --touch --directory=/tmp/jvm-common --strip-components=1
+    | tar --extract --xz --touch --directory=/tmp/jvm-common --strip-components=1
 
 # Source in a sub-shell to keep your buildpack's environment clean
 ( source /tmp/jvm-common/bin/java \
@@ -62,7 +62,3 @@ source "${HOST_BUILDPACK_DIR}/export"
 ## License
 
 Licensed under the MIT License. See LICENSE file.
-
-## Credits
-
-This buildpack is maintained by Heroku: [upstream](https://github.com/heroku/heroku-buildpack-jvm-common)
