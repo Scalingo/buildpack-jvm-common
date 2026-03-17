@@ -6,10 +6,8 @@ buildpack](https://doc.scalingo.com/platform/deployment/buildpacks) for
 build an application. It is used by the
 [Java](https://github.com/Scalingo/java-buildpack),
 [Java WAR](https://github.com/Scalingo/java-war-buildpack),
-[Gradle](https://github.com/Scalingo/gradle-buildpack),
-[Play!](https://github.com/Scalingo/play-buildpack),
-[Scala](https://github.com/Scalingo/scala-buildpack), and
-[Clojure](https://github.com/Scalingo/clojure-buildpack) buildpacks.
+[Gradle](https://github.com/Scalingo/gradle-buildpack), and
+[Scala](https://github.com/Scalingo/scala-buildpack) buildpacks.
 
 ## Standalone Usage
 
@@ -64,7 +62,3 @@ source "${HOST_BUILDPACK_DIR}/export"
 ## License
 
 Licensed under the MIT License. See LICENSE file.
-
-## Credits
-
-This buildpack is maintained by Heroku: [upstream](https://github.com/heroku/heroku-buildpack-jvm-common)
