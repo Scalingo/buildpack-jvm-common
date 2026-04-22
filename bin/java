@@ -134,9 +134,6 @@ install_openjdk() {
 					system.properties file to:
 
 					java.runtime.version = ${openjdk_version_without_distribution}
-
-					For more information, see:
-					https://devcenter.heroku.com/changelog-items/3648
 				EOF
 			else
 				output::error <<-EOF
