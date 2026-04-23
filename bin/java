@@ -63,7 +63,26 @@ install_openjdk() {
 	metrics::conditional_set_string "openjdk_version_selector" "${openjdk_version_selector}"
 
 	if [ -z "${openjdk_version_selector}" ]; then
-		if [ "${STACK}" == "scalingo-24" ]; then
+		if [ "${STACK}" == "scalingo-22" ]; then
+			openjdk_version_selector="1.8"
+
+			output::warning <<-EOF
+				Warning: No OpenJDK version specified
+
+				Your application does not explicitly specify an OpenJDK
+				version. OpenJDK ${openjdk_version_selector} will be installed.
+
+				This default version will change at some point. Your
+				application might fail to build with the new version. We
+				recommend explicitly setting the required OpenJDK version for
+				your application.
+
+				To set the OpenJDK version, add or edit the system.properties
+				file in the root directory of your application to contain:
+
+				java.runtime.version = ${openjdk_version_selector}
+			EOF
+		else
 			# This should always be the latest OpenJDK LTS major version
 			# Next LTS will be OpenJDK 29 (~September 2027, no scheduled release date yet)
 			openjdk_version_selector="25"
@@ -85,29 +104,52 @@ install_openjdk() {
 
 				java.runtime.version = ${openjdk_version_selector}
 			EOF
-		else
-			openjdk_version_selector="1.8"
-
-			output::warning <<-EOF
-				Warning: No OpenJDK version specified
-
-				Your application does not explicitly specify an OpenJDK
-				version. OpenJDK ${openjdk_version_selector} will be installed.
-
-				This default version will change at some point. Your
-				application might fail to build with the new version. We
-				recommend explicitly setting the required OpenJDK version for
-				your application.
-
-				To set the OpenJDK version, add or edit the system.properties
-				file in the root directory of your application to contain:
-
-				java.runtime.version = ${openjdk_version_selector}
-			EOF
 		fi
 	fi
 
 	if ! openjdk_json=$(inventory::query "${openjdk_version_selector}" "${STACK}"); then
+		local openjdk_version_without_distribution="${openjdk_version_selector#*-}"
+		local openjdk_requested_distribution="${openjdk_version_selector%%-*}"
+
+		# Check if the version without the distribution prefix is valid to determine
+		# whether the distribution or the version itself is the problem.
+		if inventory::query "${openjdk_version_without_distribution}" "${STACK}" >/dev/null 2>&1; then
+			# Temporary error for the Heroku OpenJDK distribution that was discontinued in
+			# April 2026. This gives affected users specific migration instructions rather
+			# than a generic error. Can be removed once we no longer expect users to hit this.
+			if [[ "${openjdk_requested_distribution}" == "heroku" ]]; then
+				output::error <<-EOF
+					Error: Heroku OpenJDK distribution has been discontinued
+
+					The Heroku OpenJDK distribution is no longer available. Your
+					application requested '${openjdk_version_selector}' in system.properties.
+
+					The default Azul Zulu OpenJDK distribution is a drop-in
+					replacement that is tested against the Java Technology
+					Compatibility Kit (TCK), ensuring full compatibility with the
+					Java specification. It is also available for local development
+					at https://www.azul.com/downloads/.
+
+					To fix this, update the java.runtime.version in your
+					system.properties file to:
+
+					java.runtime.version = ${openjdk_version_without_distribution}
+				EOF
+			else
+				output::error <<-EOF
+					Error: Unsupported Java distribution: ${openjdk_requested_distribution}
+
+					The '${openjdk_requested_distribution}' distribution is not available for
+					Java ${openjdk_version_without_distribution}. To use the
+					default distribution, remove the "${openjdk_requested_distribution}-"
+					prefix from java.runtime.version in your system.properties file.
+				EOF
+			fi
+
+			metrics::conditional_set_string "failure_reason" "unsupported_openjdk_distribution"
+			return 1
+		fi
+
 		output::error <<-EOF
 			Error: Unsupported Java version: ${openjdk_version_selector}
 
@@ -138,7 +180,6 @@ install_openjdk() {
 	local openjdk_distribution_name
 	case "${openjdk_distribution}" in
 	"zulu") openjdk_distribution_name="Azul Zulu OpenJDK" ;;
-	"heroku") openjdk_distribution_name="Heroku OpenJDK" ;;
 	*) openjdk_distribution_name="OpenJDK" ;;
 	esac
 
