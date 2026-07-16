@@ -20,27 +20,44 @@ jvm_options() {
 		"-Dfile.encoding=UTF-8"
 	)
 
-	local memory_limit_file='/sys/fs/cgroup/memory/memory.limit_in_bytes'
+	local memory_limit_in_bytes
+	local memory_limit_file
+	local cgroup_root="${WEB_CONCURRENCY_CGROUP_ROOT:-/sys/fs/cgroup}"
 
+	# cgroup v1
+	#   reports the memory limit in memory/memory.limit_in_bytes.
+	memory_limit_file="${cgroup_root}/memory/memory.limit_in_bytes"
+	
 	if [[ -f "${memory_limit_file}" ]]; then
-		local memory_limit
-		memory_limit="$( cat "${memory_limit_file}" )"
+		memory_limit_in_bytes="$( cat "${memory_limit_file}" )"
 
-		# Ignore values above 1TiB RAM, since when using cgroups v1 the limits file reports a
-		# bogus value of thousands of TiB RAM when there is no container memory limit set.
-		if ((memory_limit > 1099511627776)); then
-			unset memory_limit
+		# Ignore values above 1TB RAM, since when using cgroups v1 the limits file reports a
+		# bogus value of thousands of TB RAM when there is no container memory limit set.
+		if ((memory_limit_in_bytes > 1099511627776)); then
+			unset memory_limit_in_bytes
 		fi
 	fi
 
-	if [[ -n "${memory_limit}" ]]; then
+	# cgroups v2
+	#   reports the memory limit in memory.max.
+	memory_limit_file="${cgroup_root}/memory.max"
+
+	if [[ -f "${memory_limit_file}" ]]; then
+		memory_limit_in_bytes="$( cat "${memory_limit_file}" )"
+
+		if [[ "${memory_limit_in_bytes}" == 'max' ]]; then
+			unset memory_limit_in_bytes
+		fi
+	fi
+
+	if [[ -n "${memory_limit_in_bytes}" ]]; then
 		# The JVM tries to automatically detect the amount of available RAM for its heuristics. However,
 		# the detection has proven to be sometimes inaccurate in certain configurations.
 		# MaxRAM is used by the JVM to derive other flags from it.
-		flags+=("-XX:MaxRAM=${memory_limit}")
+		flags+=("-XX:MaxRAM=${memory_limit_in_bytes}")
 	fi
 
-	case "${memory_limit:-}" in
+	case "${memory_limit_in_bytes:-}" in
 		268435456)   # 256M   - S
 			flags+=("-Xmx160m" "-Xss512k" "-XX:CICompilerCount=2")
 			;;
