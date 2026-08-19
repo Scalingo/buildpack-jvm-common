@@ -2,12 +2,12 @@
 
 require_relative 'spec_helper'
 
-LATEST_ZULU_OPENJDK_8_STRING = 'OpenJDK Runtime Environment (Zulu 8.96.0.19-CA-linux64) (build 1.8.0_502-b07)'
-LATEST_ZULU_OPENJDK_11_STRING = 'OpenJDK Runtime Environment Zulu11.90+19-CA (build 11.0.32+9-LTS)'
-LATEST_ZULU_OPENJDK_17_STRING = 'OpenJDK Runtime Environment Zulu17.68+17-CA (build 17.0.20+8-LTS)'
-LATEST_ZULU_OPENJDK_21_STRING = 'OpenJDK Runtime Environment Zulu21.52+15-CA (build 21.0.12+8-LTS)'
-LATEST_ZULU_OPENJDK_25_STRING = 'OpenJDK Runtime Environment Zulu25.36+15-CA (build 25.0.4+7-LTS)'
-LATEST_ZULU_OPENJDK_26_STRING = 'OpenJDK Runtime Environment Zulu26.32+13-CA (build 26.0.2+10)'
+LATEST_ZULU_OPENJDK_8_STRING = 'OpenJDK Runtime Environment (Zulu 8.96.0.205-CA-linux64) (build 1.8.0_504-b01)'
+LATEST_ZULU_OPENJDK_11_STRING = 'OpenJDK Runtime Environment Zulu11.90+205-CA (build 11.0.32.1+1-LTS)'
+LATEST_ZULU_OPENJDK_17_STRING = 'OpenJDK Runtime Environment Zulu17.68+203-CA (build 17.0.20.1+1-LTS)'
+LATEST_ZULU_OPENJDK_21_STRING = 'OpenJDK Runtime Environment Zulu21.52+203-CA (build 21.0.12.1+1-LTS)'
+LATEST_ZULU_OPENJDK_25_STRING = 'OpenJDK Runtime Environment Zulu25.36+205-CA (build 25.0.4.1+1-LTS)'
+LATEST_ZULU_OPENJDK_26_STRING = 'OpenJDK Runtime Environment Zulu26.32+203-CA (build 26.0.2.1+1)'
 
 EXPECTED_JAVA_VERSIONS = {
   'heroku-22' => {
@@ -20,7 +20,7 @@ EXPECTED_JAVA_VERSIONS = {
     '25' => LATEST_ZULU_OPENJDK_25_STRING,
     '26' => LATEST_ZULU_OPENJDK_26_STRING,
     'zulu-21' => LATEST_ZULU_OPENJDK_21_STRING,
-    '21.0.12' => LATEST_ZULU_OPENJDK_21_STRING,
+    '21.0.12.1' => LATEST_ZULU_OPENJDK_21_STRING,
   },
   'heroku-24' => {
     nil => LATEST_ZULU_OPENJDK_25_STRING,
@@ -32,7 +32,7 @@ EXPECTED_JAVA_VERSIONS = {
     '25' => LATEST_ZULU_OPENJDK_25_STRING,
     '26' => LATEST_ZULU_OPENJDK_26_STRING,
     'zulu-21' => LATEST_ZULU_OPENJDK_21_STRING,
-    '21.0.12' => LATEST_ZULU_OPENJDK_21_STRING,
+    '21.0.12.1' => LATEST_ZULU_OPENJDK_21_STRING,
     # Ensure that slightly incorrect version strings work
     '    21 ' => LATEST_ZULU_OPENJDK_21_STRING,
   },
@@ -46,7 +46,7 @@ EXPECTED_JAVA_VERSIONS = {
     '25' => LATEST_ZULU_OPENJDK_25_STRING,
     '26' => LATEST_ZULU_OPENJDK_26_STRING,
     'zulu-21' => LATEST_ZULU_OPENJDK_21_STRING,
-    '21.0.12' => LATEST_ZULU_OPENJDK_21_STRING,
+    '21.0.12.1' => LATEST_ZULU_OPENJDK_21_STRING,
   },
 }.freeze
 
@@ -132,7 +132,7 @@ RSpec.describe 'Java installation' do
           remote:  !
           remote:  !     java.runtime.version = 25
           remote:
-          remote: -----> Installing Azul Zulu OpenJDK 25.0.[0-9]+
+          remote: -----> Installing Azul Zulu OpenJDK 25.0.[0-9.]+
           remote: -----> Discovering process types
           remote:        Procfile declares types -> \\(none\\)
         REGEX
@@ -164,7 +164,7 @@ RSpec.describe 'Java installation' do
           remote:  !
           remote:  !     java.runtime.version = 25
           remote:
-          remote: -----> Installing Azul Zulu OpenJDK 25.0.[0-9]+
+          remote: -----> Installing Azul Zulu OpenJDK 25.0.[0-9.]+
           remote: -----> Discovering process types
           remote:        Procfile declares types -> \\(none\\)
         REGEX
