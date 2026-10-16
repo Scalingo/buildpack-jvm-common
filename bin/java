@@ -217,10 +217,6 @@ install_openjdk() {
 		done
 	fi
 
-	# Download Heroku JVM metrics agent JAR
-	mkdir -p "${build_dir}/.scalingo/bin"
-	util::curl_with_defaults --retry 3 -s -o "${build_dir}/.scalingo/bin/heroku-metrics-agent.jar" -L "${HEROKU_METRICS_JAR_URL:-"https://repo1.maven.org/maven2/com/heroku/agent/heroku-java-metrics-agent/4.0.1/heroku-java-metrics-agent-4.0.1.jar"}"
-
 	# Copy profile.d scripts
 	local profile_d_dir="${build_dir}/.profile.d"
 	mkdir -p "${profile_d_dir}"
@@ -229,9 +225,9 @@ install_openjdk() {
 	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/default-proc-warning.sh" "${profile_d_dir}"
 	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jdbc.sh" "${profile_d_dir}"
 	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/jvm-spring-configuration.sh" "${profile_d_dir}"
-	cp "${JVM_COMMON_BUILDPACK_DIR}/opt/heroku-jvm-metrics.sh" "${profile_d_dir}"
 
 	# Install tool scripts
+	mkdir -p "${build_dir}/.scalingo"
 	cp -r "${JVM_COMMON_BUILDPACK_DIR}/opt/tools/"* "${build_dir}/.scalingo"
 
 	# Write export script for subsequent buildpacks to ensure they can use the installed OpenJDK.

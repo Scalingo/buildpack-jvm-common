@@ -3,6 +3,22 @@
 ## [Unreleased]
 
 
+## [v186] - 2026-09-18
+
+### Changed
+
+* The Heroku JVM metrics agent JAR is now vendored with the buildpack and upgraded to `4.0.4`. ([#469](https://github.com/heroku/heroku-buildpack-jvm-common/pull/469))
+
+### Removed
+
+* Removed support for overriding the Heroku JVM metrics agent JAR via the `HEROKU_METRICS_JAR_URL` environment variable. ([#469](https://github.com/heroku/heroku-buildpack-jvm-common/pull/469))
+
+## [v185] - 2026-09-16
+
+### Added
+
+* Add support for OpenJDK `27`. ([#465](https://github.com/heroku/heroku-buildpack-jvm-common/pull/465))
+
 ## [v184] - 2026-08-19
 
 ### Changed
@@ -599,7 +615,9 @@
 * Increase default heap settings for Performance-L dynos.
 * Add experimental support for `JDBC_DATABASE_URL`.
 
-[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v184...main
+[unreleased]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v186...main
+[v186]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v185...v186
+[v185]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v184...v185
 [v184]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v183...v184
 [v183]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v182...v183
 [v182]: https://github.com/heroku/heroku-buildpack-jvm-common/compare/v181...v182
